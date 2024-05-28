@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>WebSocket Test</title>
+    <script>
+        // Create a new WebSocket connection
+        var socket = new WebSocket("ws://localhost:8765");
+
+        // Function to send a test message to the server
+        function sendMessage() {
+            socket.send("Test message from client");
+        }
+
+        // Update the number of players when a message is received
+        socket.onmessage = function (event) {
+            document.getElementById("numPlayers").innerText = event.data;
+        };
+    </script>
+</head>
+
+<body>
+    <button onclick="sendMessage()">Send Test Message</button>
+    <p id="numPlayers"></p>
+</body>
+
+</html>
