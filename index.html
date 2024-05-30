@@ -28,6 +28,14 @@
                 for (var room in data.rooms) {
                     var listItem = document.createElement('li');
                     listItem.textContent = room + ': ' + data.rooms[room] + ' players';
+
+                    var joinButton = document.createElement('button');
+                    joinButton.textContent = 'Join';
+                    joinButton.addEventListener('click', function () {
+                        socket.send(JSON.stringify({ action: 'join_room', room_name: room }));
+                    });
+
+                    listItem.appendChild(joinButton);
                     roomList.appendChild(listItem);
                 }
             }

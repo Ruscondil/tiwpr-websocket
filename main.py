@@ -19,7 +19,8 @@ async def handle_message(websocket, path):
                 room_name = data.get('room_name')
                 if room_name not in rooms:
                     rooms[room_name] = [websocket]
-                    await websocket.send(json.dumps({'message': f'Room {room_name} created'}))
+                    players_no_room.remove(websocket)  # Remove player from players_no_room list
+                    await websocket.send(json.dumps({'message': f'Room {room_name} created and joined'}))
                 else:
                     await websocket.send(json.dumps({'message': f'Room {room_name} already exists'}))
                 room_info = {room: len(players) for room, players in rooms.items()}
@@ -32,8 +33,10 @@ async def handle_message(websocket, path):
 
             elif action == 'join_room':
                 room_name = data.get('room_name')
+                print(f"Player joined room {room_name}")
                 if room_name in rooms:
                     rooms[room_name].append(websocket)
+                    players_no_room.remove(websocket)  # Remove player from players_no_room list
                     await websocket.send(json.dumps({'message': f'Joined room {room_name}'}))
                 else:
                     await websocket.send(json.dumps({'message': f'Room {room_name} does not exist'}))
