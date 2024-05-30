@@ -2,26 +2,41 @@
 <html>
 
 <head>
-    <title>WebSocket Test</title>
-    <script>
-        // Create a new WebSocket connection
-        var socket = new WebSocket("ws://localhost:8765");
-
-        // Function to send a test message to the server
-        function sendMessage() {
-            socket.send("Test message from client");
-        }
-
-        // Update the number of players when a message is received
-        socket.onmessage = function (event) {
-            document.getElementById("numPlayers").innerText = event.data;
-        };
-    </script>
+    <title>Room Creator</title>
 </head>
 
 <body>
-    <button onclick="sendMessage()">Send Test Message</button>
-    <p id="numPlayers"></p>
+    <h1>Room Creator</h1>
+    <input id="roomName" type="text" placeholder="Enter room name">
+    <button id="createRoom">Create Room</button>
+    <h2>Rooms</h2>
+    <ul id="roomList"></ul>
+
+    <script>
+        var socket = new WebSocket("ws://localhost:8765");
+
+        document.getElementById('createRoom').addEventListener('click', function () {
+            var roomName = document.getElementById('roomName').value;
+            socket.send(JSON.stringify({ action: 'create_room', room_name: roomName }));
+        });
+
+        socket.onmessage = function (event) {
+            var data = JSON.parse(event.data);
+            if (data.message === 'Room info') {
+                var roomList = document.getElementById('roomList');
+                roomList.innerHTML = '';
+                for (var room in data.rooms) {
+                    var listItem = document.createElement('li');
+                    listItem.textContent = room + ': ' + data.rooms[room] + ' players';
+                    roomList.appendChild(listItem);
+                }
+            }
+        };
+
+        socket.onopen = function (event) {
+            socket.send(JSON.stringify({ action: 'get_rooms' }));
+        };
+    </script>
 </body>
 
 </html>

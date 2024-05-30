@@ -1,34 +1,47 @@
 import asyncio
 import websockets
+import json
 
 # List to store connected players
-players = []
-
+players_no_room = []
+rooms = {}
 # Function to handle incoming messages from clients
 async def handle_message(websocket, path):
-    async for message in websocket:
-        print(f"Message from client: {message}")
+    players_no_room.append(websocket)
+    print("Player connected")
+    try:
+        async for message in websocket:
+            data = json.loads(message)
+            action = data.get('action')
 
-        # Add the player to the list of connected players
-        players.append(websocket)
+            if action == 'create_room':
+                print("Room created")
+                room_name = data.get('room_name')
+                if room_name not in rooms:
+                    rooms[room_name] = [websocket]
+                    await websocket.send(json.dumps({'message': f'Room {room_name} created'}))
+                else:
+                    await websocket.send(json.dumps({'message': f'Room {room_name} already exists'}))
+                room_info = {room: len(players) for room, players in rooms.items()}
+                for player in players_no_room:
+                    await player.send(json.dumps({'message': 'Room info', 'rooms': room_info}))
 
-        # Send a message to all players with the number of connected players
-        for player in players:
-            await player.send(f"Number of players: {len(players)}")
+            elif action == 'get_rooms':
+                room_info = {room: len(players) for room, players in rooms.items()}
+                await websocket.send(json.dumps({'message': 'Room info', 'rooms': room_info}))
 
-        # Check if there are at least 2 players connected
-        if len(players) >= 2:
-            # Start the hangman game
-            await start_game()
+            elif action == 'join_room':
+                room_name = data.get('room_name')
+                if room_name in rooms:
+                    rooms[room_name].append(websocket)
+                    await websocket.send(json.dumps({'message': f'Joined room {room_name}'}))
+                else:
+                    await websocket.send(json.dumps({'message': f'Room {room_name} does not exist'}))
+    finally:
+        # Remove the player from the players_no_room list when they disconnect
+        if websocket in players_no_room:
+            players_no_room.remove(websocket)
 
-# Function to start the hangman game
-async def start_game():
-    # Implement your hangman game logic here
-    # You can use the players list to send messages to the connected players
-
-    # For example, you can send a message to all players to start the game
-    for player in players:
-        await player.send("Game started!")
 
 # Start the WebSocket server
 start_server = websockets.serve(handle_message, "localhost", 8765)
