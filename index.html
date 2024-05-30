@@ -6,36 +6,42 @@
 </head>
 
 <body>
-    <h1>Room Creator</h1>
-    <input id="roomName" type="text" placeholder="Enter room name">
-    <button id="createRoom">Create Room</button>
-    <h2>Rooms</h2>
-    <ul id="roomList"></ul>
-
+    <div id="roomCreator">
+        <h1>Room Creator</h1>
+        <input id="roomNameCreator" type="text" placeholder="Enter room name">
+        <button id="createRoom">Create Room</button>
+        <h2>Rooms</h2>
+        <ul id="roomList"></ul>
+    </div>
+    <div id="roomView" style="display: none;">
+        <div>
+            <h1>Room</h1>
+            <h2 id="roomNameView">Room name goes here</h2>
+            <p id="players">Players go here</p>
+            <button id="startGame" style="display: none;">Start Game</button>
+        </div>
+    </div>
     <script>
         var socket = new WebSocket("ws://localhost:8765");
         var roomList = document.getElementById('roomList');
-        var startGameButton = document.createElement('button');
-        startGameButton.textContent = 'Start Game';
-        startGameButton.style.display = 'none';  // Hide the button initially
-        startGameButton.addEventListener('click', function () {
-            socket.send(JSON.stringify({ action: 'start_game' }));
-        });
-        document.body.appendChild(startGameButton);
 
         document.getElementById('createRoom').addEventListener('click', function () {
-            var roomName = document.getElementById('roomName').value;
+            var roomName = document.getElementById('roomNameCreator').value;
             socket.send(JSON.stringify({ action: 'create_room', room_name: roomName }));
+        });
+
+        document.getElementById('startGame').addEventListener('click', function () {
+            var roomName = document.getElementById('roomNameView').value; //TODO może jakoś sprytniej to zrobić
+            socket.send(JSON.stringify({ action: 'start_game', room_name: roomName }));
         });
 
         socket.onmessage = function (event) {
             var data = JSON.parse(event.data);
             if (data.action === 'start_game') {  // If the server sends a start_game action
-                startGameButton.style.display = 'block';  // Show the Start Game button
+                document.getElementById('startGame').style.display = 'block';  // Show the Start Game button
             } else if (data.message === 'Waiting for start of the game') {  // If the server sends a waiting message
                 roomList.innerHTML = 'Waiting for start of the game';  // Display the waiting message
             } else if (data.message === 'Room info') {
-                var roomList = document.getElementById('roomList');
                 roomList.innerHTML = '';
                 for (var room in data.rooms) {
                     var listItem = document.createElement('li');
@@ -50,6 +56,11 @@
                     listItem.appendChild(joinButton);
                     roomList.appendChild(listItem);
                 }
+            } else if (data.message === 'Joined room info') {
+                document.getElementById('roomCreator').style.display = 'none';
+                document.getElementById('roomView').style.display = 'block';
+                document.getElementById('roomNameView').textContent = data.room_name;
+                document.getElementById('players').textContent = data.players;
             }
         };
 
