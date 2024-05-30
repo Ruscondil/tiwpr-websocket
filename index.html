@@ -59,8 +59,10 @@
             } else if (data.message === 'Joined room info') {
                 document.getElementById('roomCreator').style.display = 'none';
                 document.getElementById('roomView').style.display = 'block';
-                document.getElementById('roomNameView').textContent = data.room_name;
-                document.getElementById('players').textContent = data.players;
+                document.getElementById('roomNameView').textContent = 'Room name: ' + data.room_name;
+                document.getElementById('players').textContent = data.players + '/2 players';
+            } else if (data.message === 'UpdateJoinedRoomInfo') {
+                document.getElementById('players').textContent = data.players + '/2 players';
             }
         };
 

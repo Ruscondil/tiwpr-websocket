@@ -37,9 +37,10 @@ async def handle_message(websocket, path):
                 if room_name in rooms and len(rooms[room_name]) < 2:
                     rooms[room_name].append(websocket)
                     players_no_room.remove(websocket)
-                    if len(rooms[room_name]) == 2:  # If the room now has two players
+                    await rooms[room_name][0].send(json.dumps({'message': 'UpdateJoinedRoomInfo', 'players': 2}))  # Send UpdateJoinedRoomInfo message to the host
+                    await rooms[room_name][1].send(json.dumps({'message': 'Joined room info', 'room_name': room_name, 'players': 2})) #TODO 2 na zmienną
+                    if len(rooms[room_name]) == 2:  # If the room now has two players TODO 2 na zmienną
                         await rooms[room_name][0].send(json.dumps({'action': 'start_game'}))  # Send start_game action to the host
-                        await rooms[room_name][1].send(json.dumps({'message': 'Joined room info', 'room_name': room_name, 'players': 2}))
                 else:
                     await websocket.send(json.dumps({'message': 'Room is full or does not exist'}))
     finally:
