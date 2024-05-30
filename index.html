@@ -14,6 +14,14 @@
 
     <script>
         var socket = new WebSocket("ws://localhost:8765");
+        var roomList = document.getElementById('roomList');
+        var startGameButton = document.createElement('button');
+        startGameButton.textContent = 'Start Game';
+        startGameButton.style.display = 'none';  // Hide the button initially
+        startGameButton.addEventListener('click', function () {
+            socket.send(JSON.stringify({ action: 'start_game' }));
+        });
+        document.body.appendChild(startGameButton);
 
         document.getElementById('createRoom').addEventListener('click', function () {
             var roomName = document.getElementById('roomName').value;
@@ -22,7 +30,11 @@
 
         socket.onmessage = function (event) {
             var data = JSON.parse(event.data);
-            if (data.message === 'Room info') {
+            if (data.action === 'start_game') {  // If the server sends a start_game action
+                startGameButton.style.display = 'block';  // Show the Start Game button
+            } else if (data.message === 'Waiting for start of the game') {  // If the server sends a waiting message
+                roomList.innerHTML = 'Waiting for start of the game';  // Display the waiting message
+            } else if (data.message === 'Room info') {
                 var roomList = document.getElementById('roomList');
                 roomList.innerHTML = '';
                 for (var room in data.rooms) {

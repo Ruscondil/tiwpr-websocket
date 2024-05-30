@@ -34,12 +34,14 @@ async def handle_message(websocket, path):
             elif action == 'join_room':
                 room_name = data.get('room_name')
                 print(f"Player joined room {room_name}")
-                if room_name in rooms:
+                if room_name in rooms and len(rooms[room_name]) < 2:
                     rooms[room_name].append(websocket)
-                    players_no_room.remove(websocket)  # Remove player from players_no_room list
-                    await websocket.send(json.dumps({'message': f'Joined room {room_name}'}))
+                    players_no_room.remove(websocket)
+                    if len(rooms[room_name]) == 2:  # If the room now has two players
+                        await rooms[room_name][0].send(json.dumps({'action': 'start_game'}))  # Send start_game action to the host
+                        await rooms[room_name][1].send(json.dumps({'message': 'Waiting for start of the game'}))  # Send message to the other player
                 else:
-                    await websocket.send(json.dumps({'message': f'Room {room_name} does not exist'}))
+                    await websocket.send(json.dumps({'message': 'Room is full or does not exist'}))
     finally:
         # Remove the player from the players_no_room list when they disconnect
         if websocket in players_no_room:
