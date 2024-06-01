@@ -18,9 +18,22 @@
             <h1>Room</h1>
             <h2 id="roomNameView">Room name goes here</h2>
             <p id="players">Players go here</p>
-            <button id="startGame" style="display: none;">Start Game</button>
+            <button id="daleteRoom" style="display: none;">Delete room</button>
+            <button id="startGameButton" style="display: none;">Start Game</button>
         </div>
     </div>
+    <div id="gameView" style="display: none;">
+        <div>
+            <h1>Game</h1>
+            <p id="wordProgress">Word: </p>
+            <div id="letters" style="display: none;"">
+                <input id=" letterInput" type="text" placeholder="Enter letter" maxlength="1">
+                <button id="sendLetter">Send</button>
+            </div>
+
+        </div>
+    </div>
+
     <script>
         var socket = new WebSocket("ws://localhost:8765");
         var roomList = document.getElementById('roomList');
@@ -30,15 +43,20 @@
             socket.send(JSON.stringify({ action: 'create_room', room_name: roomName }));
         });
 
-        document.getElementById('startGame').addEventListener('click', function () {
+        document.getElementById('startGameButton').addEventListener('click', function () {
             var roomName = document.getElementById('roomNameView').value; //TODO może jakoś sprytniej to zrobić
             socket.send(JSON.stringify({ action: 'start_game', room_name: roomName }));
         });
 
+        document.getElementById('daleteRoom').addEventListener('click', function () {
+            var roomName = document.getElementById('roomNameView').value; //TODO może jakoś sprytniej to zrobić
+            socket.send(JSON.stringify({ action: 'daleteRoom', room_name: roomName }));
+        });
+
         socket.onmessage = function (event) {
             var data = JSON.parse(event.data);
-            if (data.action === 'start_game') {  // If the server sends a start_game action
-                document.getElementById('startGame').style.display = 'block';  // Show the Start Game button
+            if (data.action === 'cam_start_game') {  // If the server sends a start_game action
+                document.getElementById('startGameButton').style.display = 'block';  // Show the Start Game button
             } else if (data.message === 'Waiting for start of the game') {  // If the server sends a waiting message
                 roomList.innerHTML = 'Waiting for start of the game';  // Display the waiting message
             } else if (data.message === 'Room info') {
@@ -60,9 +78,17 @@
                 document.getElementById('roomCreator').style.display = 'none';
                 document.getElementById('roomView').style.display = 'block';
                 document.getElementById('roomNameView').textContent = 'Room name: ' + data.room_name;
-                document.getElementById('players').textContent = data.players + '/2 players';
+                document.getElementById('players').textContent = data.players + '/' + data.max_players + ' players';
             } else if (data.message === 'UpdateJoinedRoomInfo') {
-                document.getElementById('players').textContent = data.players + '/2 players';
+                document.getElementById('players').textContent = data.players + '/' + data.max_players + ' players';
+            } else if (data.action === 'StartGame') {
+                document.getElementById('roomView').style.display = 'none';
+                document.getElementById('gameView').style.display = 'block';
+                document.getElementById('wordProgress').textContent = 'Word: ' + data.wordProgress;
+                document.getElementById('letterInput').style.display = 'block';
+            } else if (data.action === 'UpdateWordProgress') {
+                document.getElementById('wordProgress').textContent = 'Word: ' + data.wordProgress;
+
             }
         };
 
