@@ -56,21 +56,22 @@ async def handle_message(websocket, path):
             elif players_in_rooms[websocket] and rooms[players_in_rooms[websocket]]['state'] == 'waiting':
                 if action == 'start_game':
                     print("Game started")
-                    word = random.choice(possible_words)
-                    print("Word: ", word)
-                    word_length = len(word)
-                    guessed_letters = []
+               
                     rooms[room_name]["state"] = "playing"
-                    rooms[room_name]["word"] = word
-                    rooms[room_name]["word_length"] = word_length
-                    rooms[room_name]["guessed_letters"] = guessed_letters
+                    rooms[room_name]["word"] = random.choice(possible_words)
+                    rooms[room_name]["word_length"] = len(rooms[room_name]["word"])
+                    rooms[room_name]["guessed_letters"] = []
+                    print("Word: ", rooms[room_name]["word"])
 
                     for player in rooms[room_name]['players']:
-                        await player.send(json.dumps({'action': 'StartGame', 'word_length': word_length, 'wordProgress': getWordProgress(word, guessed_letters)}))
+                        await player.send(json.dumps({'action': 'StartGame', 'word_length': rooms[room_name]["word_length"], 'wordProgress': getWordProgress(rooms[room_name]["word"], rooms[room_name]["guessed_letters"])}))
             elif players_in_rooms[websocket] and rooms[players_in_rooms[websocket]]['state'] == 'playing':
                 if action == 'guess_letter':
                     letter = data.get('letter')
                     print("Guess letter", letter)
+                    guessed_letters = rooms[room_name]['guessed_letters']
+                    word = rooms[room_name]['word']
+
                     if len(letter) == 1 and letter.isalpha():
                         if letter not in guessed_letters:
                             guessed_letters.append(letter)
@@ -80,11 +81,11 @@ async def handle_message(websocket, path):
                                 await rooms[room_name]['players'][1].send(json.dumps({'action': 'game_over', 'winner': 1}))
                             else:
                                 for player in rooms[room_name]['players']:
-                                    await player.send(json.dumps({'action': 'update_word_progress', 'wordProgress': wordProgress}))
+                                    await player.send(json.dumps({'action': 'UpdateWordProgress', 'wordProgress': wordProgress}))
                         else:
-                            await websocket.send(json.dumps({'message': 'Letter already guessed'}))
+                            await websocket.send(json.dumps({'message': 'Letter already guessed'})) #TODO
                     else:
-                        await websocket.send(json.dumps({'message': 'Invalid letter'}))
+                        await websocket.send(json.dumps({'message': 'Invalid letter'})) #TODO
 
 
 

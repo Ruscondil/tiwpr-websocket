@@ -57,6 +57,7 @@
             var roomName = document.getElementById('roomNameView').value; //TODO może jakoś sprytniej to zrobić
             var letter = document.getElementById('letterInput').value; // Get the value of letterInput
             socket.send(JSON.stringify({ action: 'guess_letter', room_name: roomName, letter: letter })); // Send the letter as part of the payload
+            document.getElementById('letterInput').value = ''; // Clear the value of letterInput
         });
 
 
