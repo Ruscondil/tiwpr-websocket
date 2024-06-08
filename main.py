@@ -6,6 +6,7 @@ import random
 # List to store connected players
 players_no_room = []
 rooms = {}
+players_in_rooms = {}
 
 max_players_in_room = 2
 
@@ -19,58 +20,71 @@ async def handle_message(websocket, path):
         async for message in websocket:
             data = json.loads(message)
             action = data.get('action')
-
-            if action == 'create_room':
-                print("Room created")
-                room_name = data.get('room_name')
-                if room_name not in rooms:
-                    rooms[room_name] = [websocket]
-                    players_no_room.remove(websocket)  # Remove player from players_no_room list
-                    await websocket.send(json.dumps({'message': 'Joined room info', 'room_name': room_name, 'players': 1, 'max_players': max_players_in_room}))
-                else:
-                    await websocket.send(json.dumps({'message': f'Room {room_name} already exists'})) #TODO
-                room_info = {room: len(players) for room, players in rooms.items()}
-                for player in players_no_room:
-                    await player.send(json.dumps({'message': 'Room info', 'rooms': room_info}))
-
-            elif action == 'get_rooms':
-                room_info = {room: len(players) for room, players in rooms.items()}
-                await websocket.send(json.dumps({'message': 'Room info', 'rooms': room_info}))
-
-            elif action == 'join_room':
-                room_name = data.get('room_name')
-                print(f"Player joined room {room_name}")
-                if room_name in rooms and len(rooms[room_name]) < max_players_in_room:
-                    rooms[room_name].append(websocket)
-                    players_no_room.remove(websocket)
-                    await rooms[room_name][0].send(json.dumps({'message': 'UpdateJoinedRoomInfo', 'players': len(rooms[room_name]), 'max_players': max_players_in_room}))  # Send UpdateJoinedRoomInfo message to the host
-                    await rooms[room_name][1].send(json.dumps({'message': 'Joined room info', 'room_name': room_name, 'players': len(rooms[room_name]), 'max_players': max_players_in_room})) 
-                    if len(rooms[room_name]) == max_players_in_room:  # If the room now has two players 
-                        await rooms[room_name][0].send(json.dumps({'action': 'cam_start_game'}))  # Send start_game action to the host
-                else:
-                    await websocket.send(json.dumps({'message': 'Room is full or does not exist'}))
-            elif action == 'delete_room':
-                room_name = data.get('room_name')
-                if room_name in rooms:
-                    for player in rooms[room_name]:
-                        players_no_room.append(player)
-                    del rooms[room_name]
-                    room_info = {room: len(players) for room, players in rooms.items()}
+            if players_in_rooms.get(websocket) is None:
+                if action == 'create_room':
+                    print("Room created")
+                    room_name = data.get('room_name')
+                    if room_name not in rooms:
+                        rooms[room_name] = {'players': [], 'state': 'waiting', 'word': '', 'word_length': 0, 'guessed_letters': []}
+                        rooms[room_name]['players'].append(websocket)
+                        players_in_rooms[websocket] = room_name
+                        players_no_room.remove(websocket)  # Remove player from players_no_room list
+                        await websocket.send(json.dumps({'message': 'Joined_RoomInfo', 'room_name': room_name, 'players': 1, 'max_players': max_players_in_room}))
+                    else:
+                        await websocket.send(json.dumps({'message': f'Room {room_name} already exists'})) #TODO
+                    room_info = getRoomInfo()
                     for player in players_no_room:
                         await player.send(json.dumps({'message': 'Room info', 'rooms': room_info}))
-                else:
-                    await websocket.send(json.dumps({'message': 'Room does not exist'})) #TODO
-            elif action == 'start_game':
-                print("Game started")
-                word = random.choice(possible_words)
-                word_length = len(word)
-                guessed_letters = []
-                #rooms[room_name].word = word
-                #rooms[room_name].word_length = word_length
-                #rooms[room_name].guessed_letters = guessed_letters
+                
+                elif action == 'get_rooms':
+                    room_info = getRoomInfo()
+                    await websocket.send(json.dumps({'message': 'Room info', 'rooms': room_info}))
 
-                for player in rooms[room_name]:
-                    await player.send(json.dumps({'action': 'StartGame', 'word_length': word_length, 'wordProgress': getWordProgress(word, guessed_letters)}))
+                elif action == 'join_room':
+                    room_name = data.get('room_name')
+                    print(f"Player joined room {room_name}")
+                    if room_name in rooms and len(rooms[room_name]['players']) < max_players_in_room:
+                        rooms[room_name]['players'].append(websocket)
+                        players_in_rooms[websocket] = room_name
+                        players_no_room.remove(websocket)
+                        await rooms[room_name]['players'][0].send(json.dumps({'message': 'UpdateJoinedRoomInfo', 'players': getNumOfPlayersInRoom(room_name), 'max_players': max_players_in_room}))  # Send UpdateJoinedRoomInfo message to the host
+                        await rooms[room_name]['players'][1].send(json.dumps({'message': 'Joined_RoomInfo', 'room_name': room_name, 'players': getNumOfPlayersInRoom(room_name), 'max_players': max_players_in_room})) 
+                        if getNumOfPlayersInRoom(room_name) == max_players_in_room:  # If the room now has two players 
+                            await rooms[room_name]['players'][0].send(json.dumps({'action': 'can_start_game'}))  # Send start_game action to the host
+                    else:
+                        await websocket.send(json.dumps({'message': 'Room is full or does not exist'}))
+            elif players_in_rooms[websocket] and rooms[players_in_rooms[websocket]]['state'] == 'waiting':
+                if action == 'start_game':
+                    print("Game started")
+                    word = random.choice(possible_words)
+                    print("Word: ", word)
+                    word_length = len(word)
+                    guessed_letters = []
+                    rooms[room_name]["state"] = "playing"
+                    rooms[room_name]["word"] = word
+                    rooms[room_name]["word_length"] = word_length
+                    rooms[room_name]["guessed_letters"] = guessed_letters
+
+                    for player in rooms[room_name]['players']:
+                        await player.send(json.dumps({'action': 'StartGame', 'word_length': word_length, 'wordProgress': getWordProgress(word, guessed_letters)}))
+            elif players_in_rooms[websocket] and rooms[players_in_rooms[websocket]]['state'] == 'playing':
+                if action == 'guess_letter':
+                    letter = data.get('letter')
+                    print("Guess letter", letter)
+                    if len(letter) == 1 and letter.isalpha():
+                        if letter not in guessed_letters:
+                            guessed_letters.append(letter)
+                            wordProgress = getWordProgress(word, guessed_letters)
+                            if wordProgress == word:
+                                await rooms[room_name]['players'][0].send(json.dumps({'action': 'game_over', 'winner': 0}))
+                                await rooms[room_name]['players'][1].send(json.dumps({'action': 'game_over', 'winner': 1}))
+                            else:
+                                for player in rooms[room_name]['players']:
+                                    await player.send(json.dumps({'action': 'update_word_progress', 'wordProgress': wordProgress}))
+                        else:
+                            await websocket.send(json.dumps({'message': 'Letter already guessed'}))
+                    else:
+                        await websocket.send(json.dumps({'message': 'Invalid letter'}))
 
 
 
@@ -82,6 +96,12 @@ async def handle_message(websocket, path):
 def getWordProgress(word, guessed_letters):
     return ' '.join([letter if letter in guessed_letters else '_' for letter in word])
 
+def getRoomInfo():
+    room_info = {room: len(players['players']) for room, players in rooms.items()}
+    return room_info
+
+def getNumOfPlayersInRoom(room_name):
+    return len(rooms[room_name]['players'])
 # Start the WebSocket server
 start_server = websockets.serve(handle_message, "localhost", 8765)
 

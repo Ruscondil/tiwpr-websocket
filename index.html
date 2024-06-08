@@ -26,8 +26,8 @@
         <div>
             <h1>Game</h1>
             <p id="wordProgress">Word: </p>
-            <div id="letters" style="display: none;"">
-                <input id=" letterInput" type="text" placeholder="Enter letter" maxlength="1">
+            <div id="letters">
+                <input id="letterInput" type="text" placeholder="Enter letter" maxlength="1">
                 <button id="sendLetter">Send</button>
             </div>
 
@@ -53,9 +53,16 @@
             socket.send(JSON.stringify({ action: 'daleteRoom', room_name: roomName }));
         });
 
+        document.getElementById('sendLetter').addEventListener('click', function () {
+            var roomName = document.getElementById('roomNameView').value; //TODO może jakoś sprytniej to zrobić
+            var letter = document.getElementById('letterInput').value; // Get the value of letterInput
+            socket.send(JSON.stringify({ action: 'guess_letter', room_name: roomName, letter: letter })); // Send the letter as part of the payload
+        });
+
+
         socket.onmessage = function (event) {
             var data = JSON.parse(event.data);
-            if (data.action === 'cam_start_game') {  // If the server sends a start_game action
+            if (data.action === 'can_start_game') {  // If the server sends a start_game action
                 document.getElementById('startGameButton').style.display = 'block';  // Show the Start Game button
             } else if (data.message === 'Waiting for start of the game') {  // If the server sends a waiting message
                 roomList.innerHTML = 'Waiting for start of the game';  // Display the waiting message
@@ -74,7 +81,7 @@
                     listItem.appendChild(joinButton);
                     roomList.appendChild(listItem);
                 }
-            } else if (data.message === 'Joined room info') {
+            } else if (data.message === 'Joined_RoomInfo') {
                 document.getElementById('roomCreator').style.display = 'none';
                 document.getElementById('roomView').style.display = 'block';
                 document.getElementById('roomNameView').textContent = 'Room name: ' + data.room_name;
