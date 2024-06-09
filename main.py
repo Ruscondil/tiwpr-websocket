@@ -87,15 +87,17 @@ async def handle_message(websocket, path):
                                     await rooms[room_name]['players'][0].send(json.dumps({'action': 'game_over', 'winner': 1}))
                                     await rooms[room_name]['players'][1].send(json.dumps({'action': 'game_over', 'winner': 0}))
                                 else:
-                                    await sendToAllPlayersInRoom(room_name,json.dumps({'action': 'UpdateWrongLetters', 'wrongLetters': rooms[room_name]['wrong_letters']}))
+                                    await sendToAllPlayersInRoom(room_name,json.dumps({'action': 'UpdateWrongLetters', 'wrongLetters': rooms[room_name]['wrong_letters'], 'errors': len(rooms[room_name]['wrong_letters'])}))
+                            
+                            await rooms[room_name]['players'][rooms[room_name]['turn']].send(json.dumps({'action': 'WaitTurn'}))
+                            rooms[room_name]['turn'] = (rooms[room_name]['turn'] + 1) % max_players_in_room
+                            await rooms[room_name]['players'][rooms[room_name]['turn']].send(json.dumps({'action': 'YourTurn'}))                       
                         else:
-                            await websocket.send(json.dumps({'message': 'Letter already guessed'})) #TODO
+                            await websocket.send(json.dumps({'message': 'Letter already guessed'}))
                     else:
-                        await websocket.send(json.dumps({'message': 'Invalid letter'})) #TODO
+                        await websocket.send(json.dumps({'message': 'Invalid letter'}))
 
-                    await rooms[room_name]['players'][rooms[room_name]['turn']].send(json.dumps({'action': 'WaitTurn'}))
-                    rooms[room_name]['turn'] = (rooms[room_name]['turn'] + 1) % max_players_in_room
-                    await rooms[room_name]['players'][rooms[room_name]['turn']].send(json.dumps({'action': 'YourTurn'}))
+                    
 
 
 
