@@ -26,6 +26,8 @@
         <div>
             <h1>Game</h1>
             <p id="wordProgress">Word: </p>
+            <p id="wrongLetters">Wrong letters: </p>
+
             <div id="letters">
                 <input id="letterInput" type="text" placeholder="Enter letter" maxlength="1">
                 <button id="sendLetter">Send</button>
@@ -67,7 +69,7 @@
                 document.getElementById('startGameButton').style.display = 'block';  // Show the Start Game button
             } else if (data.message === 'Waiting for start of the game') {  // If the server sends a waiting message
                 roomList.innerHTML = 'Waiting for start of the game';  // Display the waiting message
-            } else if (data.message === 'Room info') {
+            } else if (data.action === 'Room info') {
                 roomList.innerHTML = '';
                 for (var room in data.rooms) {
                     var listItem = document.createElement('li');
@@ -82,12 +84,12 @@
                     listItem.appendChild(joinButton);
                     roomList.appendChild(listItem);
                 }
-            } else if (data.message === 'Joined_RoomInfo') {
+            } else if (data.action === 'Joined_RoomInfo') {
                 document.getElementById('roomCreator').style.display = 'none';
                 document.getElementById('roomView').style.display = 'block';
                 document.getElementById('roomNameView').textContent = 'Room name: ' + data.room_name;
                 document.getElementById('players').textContent = data.players + '/' + data.max_players + ' players';
-            } else if (data.message === 'UpdateJoinedRoomInfo') {
+            } else if (data.action === 'UpdateJoinedRoomInfo') {
                 document.getElementById('players').textContent = data.players + '/' + data.max_players + ' players';
             } else if (data.action === 'StartGame') {
                 document.getElementById('roomView').style.display = 'none';
@@ -96,12 +98,23 @@
                 document.getElementById('letterInput').style.display = 'block';
             } else if (data.action === 'UpdateWordProgress') {
                 document.getElementById('wordProgress').textContent = 'Word: ' + data.wordProgress;
-
+            } else if (data.action === 'UpdateWrongLetters') {
+                document.getElementById('wrongLetters').textContent = 'Wrong letters: ' + data.wrongLetters;
             }
-        };
+            else if (data.action === 'GameOver') {
+                document.getElementById('gameView').style.display = 'none';
+                document.getElementById('roomView').style.display = 'block';
+                document.getElementById('players').textContent = data.players + '/' + data.max_players + ' players';
+                document.getElementById('startGameButton').style.display = 'none';
+                document.getElementById('daleteRoom').style.display = 'block';
+            }
+            else if (data.message) {
+                alert(data.message);
+            }
 
-        socket.onopen = function (event) {
-            socket.send(JSON.stringify({ action: 'get_rooms' }));
+            socket.onopen = function (event) {
+                socket.send(JSON.stringify({ action: 'get_rooms' }));
+            };
         };
     </script>
 </body>
