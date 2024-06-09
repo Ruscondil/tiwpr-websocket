@@ -33,6 +33,10 @@
                 <button id="sendLetter">Send</button>
             </div>
             <p id="waitTurn">Wait for your turn</p>
+            <canvas id="hangmanCanvas" width="200" height="200" style="border:1px solid #d3d3d3;">
+                Your browser does not support the HTML canvas tag.
+            </canvas>
+
 
         </div>
     </div>
@@ -97,10 +101,12 @@
                 document.getElementById('gameView').style.display = 'block';
                 document.getElementById('wordProgress').textContent = 'Word: ' + data.wordProgress;
                 document.getElementById('letterInput').style.display = 'block';
+                drawHangman(0)
             } else if (data.action === 'UpdateWordProgress') {
                 document.getElementById('wordProgress').textContent = 'Word: ' + data.wordProgress;
             } else if (data.action === 'UpdateWrongLetters') {
                 document.getElementById('wrongLetters').textContent = 'Wrong letters: ' + data.wrongLetters;
+                drawHangman(data.errors);
             } else if (data.action === 'YourTurn') {
                 document.getElementById('waitTurn').style.display = 'none';
                 document.getElementById('letters').style.display = 'block';
@@ -123,6 +129,52 @@
                 socket.send(JSON.stringify({ action: 'get_rooms' }));
             };
         };
+
+        function drawHangman(errors) {
+            var c = document.getElementById("hangmanCanvas");
+            var ctx = c.getContext("2d");
+
+            ctx.beginPath();
+            // Draw the gallows
+            ctx.moveTo(50, 180);
+            ctx.lineTo(150, 180);
+            ctx.moveTo(100, 180);
+            ctx.lineTo(100, 50);
+            ctx.lineTo(150, 50);
+            ctx.lineTo(150, 70);
+
+            if (errors > 0) {
+                // Draw the head
+                ctx.arc(150, 90, 20, 0, 2 * Math.PI);
+            }
+            if (errors > 1) {
+                // Draw the body
+                ctx.moveTo(150, 110);
+                ctx.lineTo(150, 140);
+            }
+            if (errors > 2) {
+                // Draw the first arm
+                ctx.moveTo(150, 120);
+                ctx.lineTo(130, 110);
+            }
+            if (errors > 3) {
+                // Draw the second arm
+                ctx.moveTo(150, 120);
+                ctx.lineTo(170, 110);
+            }
+            if (errors > 4) {
+                // Draw the first leg
+                ctx.moveTo(150, 140);
+                ctx.lineTo(130, 160);
+            }
+            if (errors > 5) {
+                // Draw the second leg
+                ctx.moveTo(150, 140);
+                ctx.lineTo(170, 160);
+            }
+
+            ctx.stroke();
+        }
     </script>
 </body>
 
