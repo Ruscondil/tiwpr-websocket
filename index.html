@@ -28,10 +28,11 @@
             <p id="wordProgress">Word: </p>
             <p id="wrongLetters">Wrong letters: </p>
 
-            <div id="letters">
+            <div id="letters" style="display: none;">
                 <input id="letterInput" type="text" placeholder="Enter letter" maxlength="1">
                 <button id="sendLetter">Send</button>
             </div>
+            <p id="waitTurn">Wait for your turn</p>
 
         </div>
     </div>
@@ -100,6 +101,12 @@
                 document.getElementById('wordProgress').textContent = 'Word: ' + data.wordProgress;
             } else if (data.action === 'UpdateWrongLetters') {
                 document.getElementById('wrongLetters').textContent = 'Wrong letters: ' + data.wrongLetters;
+            } else if (data.action === 'YourTurn') {
+                document.getElementById('waitTurn').style.display = 'none';
+                document.getElementById('letters').style.display = 'block';
+            } else if (data.action === 'WaitTurn') {
+                document.getElementById('waitTurn').style.display = 'block';
+                document.getElementById('letters').style.display = 'none';
             }
             else if (data.action === 'GameOver') {
                 document.getElementById('gameView').style.display = 'none';
