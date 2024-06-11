@@ -13,7 +13,10 @@ max_players_in_room = 2
 max_errors = 6
 possible_words = ['gustaw','miau','test']
 
-
+# A - Joined_RoomInfo
+# R - Room info
+# C - can_start_game
+# U - UpdateJoinedRoomInfo
 
 # Function to handle incoming messages from clients
 async def handle_message(websocket, path):
@@ -32,16 +35,16 @@ async def handle_message(websocket, path):
                         rooms[room_name]['players'].append(websocket)
                         players_in_rooms[websocket] = room_name
                         players_no_room.remove(websocket)  # Remove player from players_no_room list
-                        await websocket.send(json.dumps({'action': 'Joined_RoomInfo', 'room_name': room_name, 'players': 1, 'max_players': max_players_in_room}))
+                        await send_action(websocket, 'A', json.dumps({'room_name': room_name, 'players': 1, 'max_players': max_players_in_room}))
                     else:
                         await send_message(websocket, f'Room {room_name} already exists')
                     room_info = getRoomInfo()
                     for player in players_no_room:
-                        await player.send(json.dumps({'action': 'Room info', 'rooms': room_info}))
+                        await send_action(player, 'R', json.dumps({'rooms': room_info}))
                 
                 elif action == 'get_rooms':
                     room_info = getRoomInfo()
-                    await websocket.send(json.dumps({'action': 'Room info', 'rooms': room_info}))
+                    await send_action(websocket, 'R', json.dumps({'rooms': room_info}))
 
                 elif action == 'join_room':
                     room_name = data.get('room_name')
@@ -50,10 +53,10 @@ async def handle_message(websocket, path):
                         rooms[room_name]['players'].append(websocket)
                         players_in_rooms[websocket] = room_name
                         players_no_room.remove(websocket)
-                        await sendToAllPlayersInRoomExcept(room_name, websocket, json.dumps({'action': 'UpdateJoinedRoomInfo', 'players': getNumOfPlayersInRoom(room_name), 'max_players': max_players_in_room}))  #TODO do wszystkich oprócz websocket
-                        await websocket.send(json.dumps({'action': 'Joined_RoomInfo', 'room_name': room_name, 'players': getNumOfPlayersInRoom(room_name), 'max_players': max_players_in_room})) 
+                        await sendToAllPlayersInRoomExcept(room_name, websocket, 'U', json.dumps({'players': getNumOfPlayersInRoom(room_name), 'max_players': max_players_in_room}))  #TODO do wszystkich oprócz websocket
+                        await send_action(websocket, 'A', json.dumps({'room_name': room_name, 'players': getNumOfPlayersInRoom(room_name), 'max_players': max_players_in_room})) 
                         if getNumOfPlayersInRoom(room_name) == max_players_in_room:  # If the room now has two players 
-                            await sendToHost(room_name,json.dumps({'action': 'can_start_game'}))  # Send start_game action to the host
+                            await sendToHost(room_name, 'C', '')  # Send start_game action to the host
             elif players_in_rooms[websocket] and rooms[players_in_rooms[websocket]]['state'] == 'waiting':
                 if action == 'start_game':
                     print("Game started")
@@ -123,20 +126,21 @@ def getRoomInfo():
 def getNumOfPlayersInRoom(room_name):
     return len(rooms[room_name]['players'])
 
-async def sendToHost(room_name, message):
-    await rooms[room_name]['host'].send(message)
+async def sendToHost(room_name, action, data):
+    send_action(rooms[room_name]['host'], action, data)
 
 async def send_action(websocket, action, data):
     sign = 'A'
     data = struct.pack('!BB', ord(sign), ord(action)) + json.dumps(data).encode()
+
+    print(data)
     await websocket.send(data)
 
 async def send_message(websocket, message):
-    sign = 'L'
+    sign = 'M'
     data = struct.pack('!B', ord(sign)) + message.encode()
     await websocket.send(data)
     
-
 
 async def sendToAllPlayersInRoomExceptHost(room_name, message):
     for player in rooms[room_name]['players']:
@@ -147,10 +151,10 @@ async def sendToAllPlayersInRoom(room_name, message):
     for player in rooms[room_name]['players']:
         await player.send(message)
 
-async def sendToAllPlayersInRoomExcept(room_name, player, message):
+async def sendToAllPlayersInRoomExcept(room_name, player, action, data):
     for player in rooms[room_name]['players']:
         if player != player:
-            await player.send(message)
+            await send_action(player, action, data)
 # Start the WebSocket server
 start_server = websockets.serve(handle_message, "localhost", 8765)
 
