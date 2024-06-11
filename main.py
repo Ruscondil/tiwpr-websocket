@@ -17,6 +17,15 @@ possible_words = ['gustaw','miau','test']
 # R - Room info
 # C - can_start_game
 # U - UpdateJoinedRoomInfo
+# J - JoinRoom - Join
+# G - GetRooms - Get
+# Y - YourTurn - Your
+# W - WaitTurn - Wait
+# V - GameWin - Victory
+# L - GameOver - Lose
+# S - StartGame - Start
+# P - UpdateWordProgress - Progress
+# M - UpdateWrongLetters - Miss
 
 # Function to handle incoming messages from clients
 async def handle_message(websocket, path):
@@ -42,11 +51,11 @@ async def handle_message(websocket, path):
                     for player in players_no_room:
                         await send_action(player, 'R', json.dumps({'rooms': room_info}))
                 
-                elif action == 'get_rooms':
+                elif action == 'G':
                     room_info = getRoomInfo()
                     await send_action(websocket, 'R', json.dumps({'rooms': room_info}))
 
-                elif action == 'join_room':
+                elif action == 'J':
                     room_name = data.get('room_name')
                     print(f"Player joined room {room_name}")
                     if room_name in rooms and len(rooms[room_name]['players']) < max_players_in_room:
@@ -67,10 +76,10 @@ async def handle_message(websocket, path):
                     rooms[room_name]["guessed_letters"] = []
                     rooms[room_name]["wrong_letters"] = []
                     rooms[room_name]["turn"] = 0
-                    await rooms[room_name]['players'][rooms[room_name]['turn']].send(json.dumps({'action': 'YourTurn'}))
+                    send_action(rooms[room_name]['players'][rooms[room_name]['turn']], 'Y', '')  # Send action to the first player in the room
                     print("Word: ", rooms[room_name]["word"])
 
-                    await sendToAllPlayersInRoom(room_name,json.dumps({'action': 'StartGame', 'word_length': rooms[room_name]["word_length"], 'wordProgress': getWordProgress(rooms[room_name]["word"], rooms[room_name]["guessed_letters"])}))
+                    await sendToAllPlayersInRoom(room_name,'S',json.dumps({'word_length': rooms[room_name]["word_length"], 'wordProgress': getWordProgress(rooms[room_name]["word"], rooms[room_name]["guessed_letters"])}))
             elif players_in_rooms[websocket] and rooms[players_in_rooms[websocket]]['state'] == 'playing':
                 if action == 'guess_letter':
                     letter = data.get('letter')
@@ -82,19 +91,19 @@ async def handle_message(websocket, path):
                             if checkIfLetterInWord(letter, word):
                                 rooms[room_name]['guessed_letters'].append(letter)
                                 if len(rooms[room_name]['guessed_letters']) == getUniqueLettersCount(word):
-                                    await sendToAllPlayersInRoom(room_name,json.dumps({'action': 'GameWin', 'word': word}))
+                                    await sendToAllPlayersInRoom(room_name,'V', json.dumps({'word': word}))
                                 else:
-                                    await sendToAllPlayersInRoom(room_name,json.dumps({'action': 'UpdateWordProgress', 'wordProgress': getWordProgress(word, rooms[room_name]['guessed_letters'])}))
+                                    await sendToAllPlayersInRoom(room_name,'P', json.dumps({'wordProgress': getWordProgress(word, rooms[room_name]['guessed_letters'])}))
                             else:
                                 rooms[room_name]['wrong_letters'].append(letter)
                                 if len(rooms[room_name]['wrong_letters']) == max_errors:
-                                    await sendToAllPlayersInRoom(room_name,json.dumps({'action': 'GameOver', 'word': word}))
+                                    await sendToAllPlayersInRoom(room_name,'L', json.dumps({'word': word}))
                                 else:
-                                    await sendToAllPlayersInRoom(room_name,json.dumps({'action': 'UpdateWrongLetters', 'wrongLetters': rooms[room_name]['wrong_letters'], 'errors': len(rooms[room_name]['wrong_letters'])}))
+                                    await sendToAllPlayersInRoom(room_name,'M', json.dumps({'wrongLetters': rooms[room_name]['wrong_letters'], 'errors': len(rooms[room_name]['wrong_letters'])}))
                             
-                            await rooms[room_name]['players'][rooms[room_name]['turn']].send(json.dumps({'action': 'WaitTurn'}))
+                            send_action(rooms[room_name]['players'][rooms[room_name]['turn']], 'W', '')  
                             rooms[room_name]['turn'] = (rooms[room_name]['turn'] + 1) % max_players_in_room
-                            await rooms[room_name]['players'][rooms[room_name]['turn']].send(json.dumps({'action': 'YourTurn'}))                       
+                            send_action(rooms[room_name]['players'][rooms[room_name]['turn']], 'Y', '')                 
                         else:
                             await send_message(websocket, 'Letter already guessed')
                     else:
@@ -127,7 +136,7 @@ def getNumOfPlayersInRoom(room_name):
     return len(rooms[room_name]['players'])
 
 async def sendToHost(room_name, action, data):
-    send_action(rooms[room_name]['host'], action, data)
+    await send_action(rooms[room_name]['host'], action, data)
 
 async def send_action(websocket, action, data):
     sign = 'A'
@@ -142,14 +151,14 @@ async def send_message(websocket, message):
     await websocket.send(data)
     
 
-async def sendToAllPlayersInRoomExceptHost(room_name, message):
+async def sendToAllPlayersInRoomExceptHost(room_name, action, data):
     for player in rooms[room_name]['players']:
         if player != rooms[room_name]['host']:
-            await player.send(message)
+            await player.send(data)
 
-async def sendToAllPlayersInRoom(room_name, message):
+async def sendToAllPlayersInRoom(room_name, action, data):
     for player in rooms[room_name]['players']:
-        await player.send(message)
+        await player.send(data)
 
 async def sendToAllPlayersInRoomExcept(room_name, player, action, data):
     for player in rooms[room_name]['players']:

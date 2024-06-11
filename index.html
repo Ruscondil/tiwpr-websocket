@@ -32,7 +32,7 @@
                 <input id="letterInput" type="text" placeholder="Enter letter" maxlength="1">
                 <button id="sendLetter">Send</button>
             </div>
-            <p id="waitTurn">Wait for your turn</p>
+            <p id="W">Wait for your turn</p>
             <canvas id="hangmanCanvas" width="200" height="200" style="border:1px solid #d3d3d3;">
                 Your browser does not support the HTML canvas tag.
             </canvas>
@@ -86,8 +86,9 @@
                         alert(message);
                     } else if (sign === 'A') {
                         var action = reader.result.charAt(1);
-                        console.log(action)
-                        var data = JSON.parse(reader.result.slice(2));
+                        var result = reader.result.substring(2);
+                        var data = JSON.parse(result);
+                        data = JSON.parse(data);
                         if (action === 'C') { // If the server sends a start_game action
                             document.getElementById('startGameButton').style.display = 'block';  // Show the Start Game button
                         } else if (action === 'R') {
@@ -99,7 +100,7 @@
                                 var joinButton = document.createElement('button');
                                 joinButton.textContent = 'Join';
                                 joinButton.addEventListener('click', function () {
-                                    socket.send(JSON.stringify({ action: 'join_room', room_name: room }));
+                                    socket.send(JSON.stringify({ action: 'J', room_name: room }));
                                 });
 
                                 listItem.appendChild(joinButton);
@@ -112,6 +113,33 @@
                             document.getElementById('players').textContent = data.players + '/' + data.max_players + ' players';
                         } else if (action === 'U') {
                             document.getElementById('players').textContent = data.players + '/' + data.max_players + ' players';
+                        } else if (action === 'S') {
+                            document.getElementById('roomView').style.display = 'none';
+                            document.getElementById('gameView').style.display = 'block';
+                            document.getElementById('wordProgress').textContent = 'Word: ' + data.wordProgress;
+                            document.getElementById('letterInput').style.display = 'block';
+                            drawHangman(0)
+                        } else if (action === 'P') {
+                            document.getElementById('wordProgress').textContent = 'Word: ' + data.wordProgress;
+                        } else if (action === 'M') {
+                            document.getElementById('wrongLetters').textContent = 'Wrong letters: ' + data.wrongLetters;
+                            drawHangman(data.errors);
+                        } else if (action === 'Y') {
+                            document.getElementById('W').style.display = 'none';
+                            document.getElementById('letters').style.display = 'block';
+                        } else if (action === 'W') {
+                            document.getElementById('W').style.display = 'block';
+                            document.getElementById('letters').style.display = 'none';
+                        }
+                        else if (action === 'L') {
+                            document.getElementById('gameView').style.display = 'none';
+                            document.getElementById('EndGame').style.display = 'block';
+                            document.getElementById('EndGameMessage').textContent = 'Hangman! The word was: ' + data.word + '. Better luck next time!';
+                        }
+                        else if (action === 'V') {
+                            document.getElementById('gameView').style.display = 'none';
+                            document.getElementById('EndGame').style.display = 'block';
+                            document.getElementById('EndGameMessage').textContent = 'Congratulations! You won! The word was: ' + data.word;
                         }
                     }
                 } catch (e) {
@@ -121,47 +149,8 @@
             }
             reader.readAsText(event.data);
 
-
-
-
-
-            // else {
-            //     var data = JSON.parse(event.data);  // Parse the JSON data that the server sent
-
-
-            //     if (data.message === 'Waiting for start of the game') {  // If the server sends a waiting message
-            //         roomList.innerHTML = 'Waiting for start of the game';  // Display the waiting message
-            //     } else if (data.action === 'StartGame') {
-            //         document.getElementById('roomView').style.display = 'none';
-            //         document.getElementById('gameView').style.display = 'block';
-            //         document.getElementById('wordProgress').textContent = 'Word: ' + data.wordProgress;
-            //         document.getElementById('letterInput').style.display = 'block';
-            //         drawHangman(0)
-            //     } else if (data.action === 'UpdateWordProgress') {
-            //         document.getElementById('wordProgress').textContent = 'Word: ' + data.wordProgress;
-            //     } else if (data.action === 'UpdateWrongLetters') {
-            //         document.getElementById('wrongLetters').textContent = 'Wrong letters: ' + data.wrongLetters;
-            //         drawHangman(data.errors);
-            //     } else if (data.action === 'YourTurn') {
-            //         document.getElementById('waitTurn').style.display = 'none';
-            //         document.getElementById('letters').style.display = 'block';
-            //     } else if (data.action === 'WaitTurn') {
-            //         document.getElementById('waitTurn').style.display = 'block';
-            //         document.getElementById('letters').style.display = 'none';
-            //     }
-            //     else if (data.action === 'GameOver') {
-            //         document.getElementById('gameView').style.display = 'none';
-            //         document.getElementById('EndGame').style.display = 'block';
-            //         document.getElementById('EndGameMessage').textContent = 'Hangman! The word was: ' + data.word + '. Better luck next time!';
-            //     }
-            //     else if (data.action === 'GameWin') {
-            //         document.getElementById('gameView').style.display = 'none';
-            //         document.getElementById('EndGame').style.display = 'block';
-            //         document.getElementById('EndGameMessage').textContent = 'Congratulations! You won! The word was: ' + data.word;
-            //     }
-            // }
             socket.onopen = function (event) {
-                socket.send(JSON.stringify({ action: 'get_rooms' }));
+                socket.send(JSON.stringify({ action: 'G' }));
             };
         };
 
