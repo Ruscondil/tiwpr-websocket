@@ -115,11 +115,14 @@
                         } else if (action === 'U') {
                             document.getElementById('players').textContent = data.players + '/' + data.max_players + ' players';
                         } else if (action === 'S') {
+                            document.getElementById('startGameButton').style.display = 'none';
                             document.getElementById('roomView').style.display = 'none';
                             document.getElementById('gameView').style.display = 'block';
                             document.getElementById('wordProgress').textContent = 'Word: ' + data.wordProgress;
+                            document.getElementById('wrongLetters').textContent = 'Wrong letters: ';
                             document.getElementById('letterInput').style.display = 'block';
-                            drawHangman(0)
+                            resetHangman();
+                            drawHangman(0);
                         } else if (action === 'P') {
                             document.getElementById('wordProgress').textContent = 'Word: ' + data.wordProgress;
                         } else if (action === 'M') {
@@ -203,6 +206,11 @@
             view.setUint8(2, letterCharCode);
 
             socket.send(buffer);
+        }
+        function resetHangman() {
+            var c = document.getElementById("hangmanCanvas");
+            var ctx = c.getContext("2d");
+            ctx.clearRect(0, 0, c.width, c.height);
         }
 
         function drawHangman(errors) {
