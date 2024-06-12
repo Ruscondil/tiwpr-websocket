@@ -43,6 +43,7 @@
     <div id="EndGame" style="display: none;">
         <h1>Game Over</h1>
         <p id="EndGameMessage">Game Over</p>
+        <button id="EndGameButton">Back to menu</button>
     </div>
 
     <script>
@@ -56,18 +57,18 @@
             } else {
                 sendActionRoomData('X', roomName);
             }
+            document.getElementById('roomNameCreator').value = '';
         });
 
         document.getElementById('startGameButton').addEventListener('click', function () {
             sendAction('B')
         });
 
-        document.getElementById('D').addEventListener('click', function () {
+        document.getElementById('EndGameButton').addEventListener('click', function () {
             sendAction('D')
         });
 
         document.getElementById('sendLetter').addEventListener('click', function () {
-            var roomName = document.getElementById('roomNameView').value; //TODO może jakoś sprytniej to zrobić
             var letter = document.getElementById('letterInput').value; // Get the value of letterInput
             sendActionLetter('C', letter)
             document.getElementById('letterInput').value = ''; // Clear the value of letterInput
@@ -140,6 +141,10 @@
                             document.getElementById('gameView').style.display = 'none';
                             document.getElementById('EndGame').style.display = 'block';
                             document.getElementById('EndGameMessage').textContent = 'Congratulations! You won! The word was: ' + data.word;
+                        }
+                        else if (action === 'E') {
+                            document.getElementById('EndGame').style.display = 'none';
+                            document.getElementById('roomCreator').style.display = 'block';
                         }
                     }
                 } catch (e) {

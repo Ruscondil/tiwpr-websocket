@@ -30,6 +30,7 @@ possible_words = ['gustaw','miau','test']
 # B - start_game
 # D - delete_room
 # C - guess_letter
+# E - restart
 
 # Function to handle incoming messages from clients
 async def handle_message(websocket, path):
@@ -98,12 +99,14 @@ async def handle_message(websocket, path):
                             if checkIfLetterInWord(letter, word):
                                 rooms[room_name]['guessed_letters'].append(letter)
                                 if len(rooms[room_name]['guessed_letters']) == getUniqueLettersCount(word):
+                                    rooms[room_name]["state"] = "ended"
                                     await sendToAllPlayersInRoom(room_name,'V', json.dumps({'word': word}))
                                 else:
                                     await sendToAllPlayersInRoom(room_name,'P', json.dumps({'wordProgress': getWordProgress(word, rooms[room_name]['guessed_letters'])}))
                             else:
                                 rooms[room_name]['wrong_letters'].append(letter)
                                 if len(rooms[room_name]['wrong_letters']) == max_errors:
+                                    rooms[room_name]["state"] = "ended"
                                     await sendToAllPlayersInRoom(room_name,'L', json.dumps({'word': word}))
                                 else:
                                     await sendToAllPlayersInRoom(room_name,'M', json.dumps({'wrongLetters': rooms[room_name]['wrong_letters'], 'errors': len(rooms[room_name]['wrong_letters'])}))
@@ -115,6 +118,22 @@ async def handle_message(websocket, path):
                             await send_message(websocket, 'Letter already guessed')
                     else:
                         await send_message(websocket, 'Invalid letter')
+            elif players_in_rooms[websocket] and rooms[players_in_rooms[websocket]]['state'] == 'ended':
+                if action == 'D':
+                    print
+                    room_name = players_in_rooms[websocket]
+                    rooms[room_name]['players'].remove(websocket)
+                    del players_in_rooms[websocket]
+                    players_no_room.append(websocket)
+                    
+                    if len(rooms[room_name]['players']) == 0:
+                        del rooms[room_name]
+
+                    await send_action(websocket, 'E',json.dumps({}))    
+                    room_info = getRoomInfo()
+                    await send_action(websocket, 'R', json.dumps({'rooms': room_info}))
+                    
+                        
 
                     
 
@@ -136,7 +155,7 @@ def checkIfLetterInWord(letter, word):
     return letter in word
 
 def getRoomInfo():
-    room_info = {room: len(players['players']) for room, players in rooms.items()}
+    room_info = {room: len(players['players']) for room, players in rooms.items() if rooms.get(room, {}).get('state') == 'waiting'}
     return room_info
 
 def getNumOfPlayersInRoom(room_name):
