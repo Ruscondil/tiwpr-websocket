@@ -8,7 +8,7 @@
 <body>
     <div id="roomCreator">
         <h1>Room Creator</h1>
-        <input id="roomNameCreator" type="text" placeholder="Enter room name">
+        <input id="roomNameCreator" type="text" placeholder="Enter room name" maxlength="16">
         <button id="createRoom">Create Room</button>
         <h2>Rooms</h2>
         <ul id="roomList"></ul>
@@ -18,7 +18,7 @@
             <h1>Room</h1>
             <h2 id="roomNameView">Room name goes here</h2>
             <p id="players">Players go here</p>
-            <button id="daleteRoom" style="display: none;">Delete room</button>
+            <button id="D" style="display: none;">Delete room</button>
             <button id="startGameButton" style="display: none;">Start Game</button>
         </div>
     </div>
@@ -51,34 +51,34 @@
 
         document.getElementById('createRoom').addEventListener('click', function () {
             var roomName = document.getElementById('roomNameCreator').value;
-            socket.send(JSON.stringify({ action: 'create_room', room_name: roomName }));
+            if (roomName === '') {
+                alert('Room name cannot be empty');
+            } else {
+                sendActionRoomData('X', roomName);
+            }
         });
 
         document.getElementById('startGameButton').addEventListener('click', function () {
-            var roomName = document.getElementById('roomNameView').value; //TODO może jakoś sprytniej to zrobić
-            socket.send(JSON.stringify({ action: 'start_game', room_name: roomName }));
+            sendAction('B')
         });
 
-        document.getElementById('daleteRoom').addEventListener('click', function () {
-            var roomName = document.getElementById('roomNameView').value; //TODO może jakoś sprytniej to zrobić
-            socket.send(JSON.stringify({ action: 'daleteRoom', room_name: roomName }));
+        document.getElementById('D').addEventListener('click', function () {
+            sendAction('D')
         });
 
         document.getElementById('sendLetter').addEventListener('click', function () {
             var roomName = document.getElementById('roomNameView').value; //TODO może jakoś sprytniej to zrobić
             var letter = document.getElementById('letterInput').value; // Get the value of letterInput
-            socket.send(JSON.stringify({ action: 'guess_letter', room_name: roomName, letter: letter })); // Send the letter as part of the payload
+            sendActionLetter('C', letter)
             document.getElementById('letterInput').value = ''; // Clear the value of letterInput
         });
 
 
         socket.onmessage = function (event) {
-            console.log("test");
             var reader = new FileReader();
             reader.onload = function () {
                 try {
                     var sign = reader.result.charAt(0);
-                    console.log("test2");
                     console.log(reader.result)
                     console.log(sign);
                     if (sign === 'M') {
@@ -89,7 +89,7 @@
                         var result = reader.result.substring(2);
                         var data = JSON.parse(result);
                         data = JSON.parse(data);
-                        if (action === 'C') { // If the server sends a start_game action
+                        if (action === 'C') { // If the server sends a B action
                             document.getElementById('startGameButton').style.display = 'block';  // Show the Start Game button
                         } else if (action === 'R') {
                             roomList.innerHTML = '';
@@ -100,7 +100,7 @@
                                 var joinButton = document.createElement('button');
                                 joinButton.textContent = 'Join';
                                 joinButton.addEventListener('click', function () {
-                                    socket.send(JSON.stringify({ action: 'J', room_name: room }));
+                                    sendActionRoomData('J', room);
                                 });
 
                                 listItem.appendChild(joinButton);
@@ -149,10 +149,56 @@
             }
             reader.readAsText(event.data);
 
-            socket.onopen = function (event) {
-                socket.send(JSON.stringify({ action: 'G' }));
+            socket.onopen = function () {
+                sendAction('G');
             };
         };
+
+        function sendAction(action) {
+            const sign = 'A';
+            const signCharCode = sign.charCodeAt(0);
+            const actionCharCode = action.charCodeAt(0);
+
+            const buffer = new ArrayBuffer(3);
+            const view = new DataView(buffer);
+            view.setUint8(0, signCharCode);
+            view.setUint8(1, actionCharCode);
+
+            socket.send(buffer);
+        }
+
+        function sendActionRoomData(action, roomName) {
+            const sign = 'A';
+            const signCharCode = sign.charCodeAt(0);
+            const actionCharCode = action.charCodeAt(0);
+
+            const buffer = new ArrayBuffer(18);
+            const view = new DataView(buffer);
+            view.setUint8(0, signCharCode);
+            view.setUint8(1, actionCharCode);
+            view.setUint8(2, roomName.length);
+            for (let i = 0; i < roomName.length; i++) {
+                view.setUint8(3 + i, roomName.charCodeAt(i));
+            }
+
+
+            socket.send(buffer);
+        }
+
+        function sendActionLetter(action, letter) {
+            const sign = 'A';
+            const signCharCode = sign.charCodeAt(0);
+            const actionCharCode = action.charCodeAt(0);
+            const letterCharCode = letter.charCodeAt(0);
+
+            const buffer = new ArrayBuffer(3);
+            const view = new DataView(buffer);
+            view.setUint8(0, signCharCode);
+            view.setUint8(1, actionCharCode);
+            view.setUint8(2, letterCharCode);
+
+            socket.send(buffer);
+        }
 
         function drawHangman(errors) {
             var c = document.getElementById("hangmanCanvas");
