@@ -64,16 +64,19 @@ async def handle_message(websocket, path):
 
                 elif action == 'J':
                     room_name = decode_roomname(message)
-                    print(f"Player joined room {room_name}")
                     if room_name in rooms and len(rooms[room_name]['players']) < max_players_in_room:
+                        print(f"Player joined room {room_name}")
                         rooms[room_name]['players'].append(websocket)
                         players_in_rooms[websocket] = room_name
                         players_no_room.remove(websocket)
                         await sendToAllPlayersInRoomExcept(room_name, websocket, 'U', json.dumps({'players': getNumOfPlayersInRoom(room_name), 'max_players': max_players_in_room}))  #TODO do wszystkich oprócz websocket
                         await send_action(websocket, 'A', json.dumps({'room_name': room_name, 'players': getNumOfPlayersInRoom(room_name), 'max_players': max_players_in_room})) 
                         if getNumOfPlayersInRoom(room_name) == max_players_in_room:  # If the room now has two players 
+                            rooms[room_name]['state'] = 'waiting_to_start'
                             await sendToHost(room_name, 'C', json.dumps({}))  # Send B action to the host
-            elif players_in_rooms[websocket] and rooms[players_in_rooms[websocket]]['state'] == 'waiting':
+                        for player in players_no_room:
+                            await send_action(player, 'R', json.dumps({'rooms': room_info}))
+            elif players_in_rooms[websocket] and rooms[players_in_rooms[websocket]]['state'] == 'waiting_to_start':
                 if action == 'B':
                     print("Game started")
                     room_name = players_in_rooms[websocket]
