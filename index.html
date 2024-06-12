@@ -74,6 +74,14 @@
             document.getElementById('letterInput').value = ''; // Clear the value of letterInput
         });
 
+        socket.onopen = function () {
+            console.log('Connected');
+            sendAction('G');
+            if (localStorage.getItem('index')) {
+                const index = localStorage.getItem('index');
+                sendActionIndex('I', index);
+            }
+        };
 
         socket.onmessage = function (event) {
             var reader = new FileReader();
@@ -90,7 +98,9 @@
                         var result = reader.result.substring(2);
                         var data = JSON.parse(result);
                         data = JSON.parse(data);
-                        if (action === 'C') { // If the server sends a B action
+                        if (action === 'I') {
+                            localStorage.setItem('index', data.index);
+                        } else if (action === 'C') { // If the server sends a B action
                             document.getElementById('startGameButton').style.display = 'block';  // Show the Start Game button
                         } else if (action === 'R') {
                             roomList.innerHTML = '';
@@ -157,12 +167,23 @@
             }
             reader.readAsText(event.data);
 
-            socket.onopen = function () {
-                sendAction('G');
-            };
+
         };
 
         function sendAction(action) {
+            const sign = 'A';
+            const signCharCode = sign.charCodeAt(0);
+            const actionCharCode = action.charCodeAt(0);
+
+            const buffer = new ArrayBuffer(2);
+            const view = new DataView(buffer);
+            view.setUint8(0, signCharCode);
+            view.setUint8(1, actionCharCode);
+
+            socket.send(buffer);
+        }
+
+        function sendActionIndex(action, index) {
             const sign = 'A';
             const signCharCode = sign.charCodeAt(0);
             const actionCharCode = action.charCodeAt(0);
@@ -171,6 +192,7 @@
             const view = new DataView(buffer);
             view.setUint8(0, signCharCode);
             view.setUint8(1, actionCharCode);
+            view.setUint8(2, index);
 
             socket.send(buffer);
         }
