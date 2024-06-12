@@ -16,7 +16,7 @@ players_disconnted = []
 
 max_players_in_room = 2
 max_errors = 6
-possible_words = ['gustaw','miau','test']
+possible_words = ['kajak','komputer','tiwpr','test']
 
 # A - Joined_RoomInfo
 # R - Room info
@@ -53,7 +53,7 @@ async def handle_message(websocket, path):
     try:
         async for message in websocket:
             message, sign, action = decode_action(message)
-            print("Received message", sign, action, message)
+            #print("Received message", sign, action, message)
             if players_in_rooms.get(getId(websocket)) is None:
                 if action == 'I':
                     old_index = decode_index(message)
@@ -64,10 +64,8 @@ async def handle_message(websocket, path):
                         players_ids2websockets[index] = None
                         players_websockets2ids[websocket] = old_index
                         players_ids2websockets[old_index] = websocket
-                        print(getId(websocket))
                         print("Reconnected player", old_index)
                         await send_action(websocket, 'I', json.dumps({'index': getId(websocket)}))
-                        print(getId(websocket) in players_in_rooms, rooms[players_in_rooms[getId(websocket)]]['state'] == 'waiting_to_start')
                         if getId(websocket) in players_in_rooms and rooms[players_in_rooms[getId(websocket)]]['state'] == 'waiting_to_start':
                             await send_action(websocket, 'A', json.dumps({'room_name': players_in_rooms[getId(websocket)], 'players': getNumOfPlayersInRoom(players_in_rooms[getId(websocket)]), 'max_players': max_players_in_room}))
                             room_name = players_in_rooms[getId(websocket)]
@@ -102,7 +100,6 @@ async def handle_message(websocket, path):
                         await send_message(websocket, f'Room {room_name} already exists')
                     room_info = getRoomInfo()
                     for player in players_no_room:
-                        print("TEST", player)
                         await send_action(getWebsocket(player), 'R', json.dumps({'rooms': room_info}))
                 
                 elif action == 'G':
@@ -170,7 +167,6 @@ async def handle_message(websocket, path):
                         await send_message(websocket, 'Invalid letter')
             elif  getId(websocket) in players_in_rooms and rooms[players_in_rooms[getId(websocket)]]['state'] == 'ended':
                 if action == 'D':
-                    print
                     room_name = players_in_rooms[getId(websocket)]
                     rooms[room_name]['players'].remove(getId(websocket))
                     del players_in_rooms[getId(websocket)]
@@ -221,7 +217,7 @@ async def send_action(websocket, action, data):
     sign = 'A'
     data = struct.pack('!BB', ord(sign), ord(action)) + json.dumps(data).encode()
 
-    print(data)
+    #print(data)
     await websocket.send(data)
 
 async def send_message(websocket, message):
@@ -242,11 +238,10 @@ async def sendToAllPlayersInRoom(room_name, action, data):
 async def sendToAllPlayersInRoomExcept(room_name, expect, action, data):
     for player in rooms[room_name]['players']:
         if player != expect:
-            print(player)
             await send_action(getWebsocket(player), action, data)
 
 def decode_action(buffer):
-    print(buffer)
+    #print(buffer)
     sign, action = struct.unpack('BB', buffer[:2])
     return buffer[2:], chr(sign), chr(action)
 
