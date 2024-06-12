@@ -125,6 +125,7 @@
                         } else if (action === 'U') {
                             document.getElementById('players').textContent = data.players + '/' + data.max_players + ' players';
                         } else if (action === 'S') {
+                            document.getElementById('roomCreator').style.display = 'none';
                             document.getElementById('startGameButton').style.display = 'none';
                             document.getElementById('roomView').style.display = 'none';
                             document.getElementById('gameView').style.display = 'block';
@@ -146,11 +147,15 @@
                             document.getElementById('letters').style.display = 'none';
                         }
                         else if (action === 'L') {
+                            document.getElementById('roomCreator').style.display = 'none';
+                            document.getElementById('roomView').style.display = 'none';
                             document.getElementById('gameView').style.display = 'none';
                             document.getElementById('EndGame').style.display = 'block';
                             document.getElementById('EndGameMessage').textContent = 'Hangman! The word was: ' + data.word + '. Better luck next time!';
                         }
                         else if (action === 'V') {
+                            document.getElementById('roomCreator').style.display = 'none';
+                            document.getElementById('roomView').style.display = 'none';
                             document.getElementById('gameView').style.display = 'none';
                             document.getElementById('EndGame').style.display = 'block';
                             document.getElementById('EndGameMessage').textContent = 'Congratulations! You won! The word was: ' + data.word;

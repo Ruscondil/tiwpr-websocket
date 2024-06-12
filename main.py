@@ -70,9 +70,25 @@ async def handle_message(websocket, path):
                         print(getId(websocket) in players_in_rooms, rooms[players_in_rooms[getId(websocket)]]['state'] == 'waiting_to_start')
                         if getId(websocket) in players_in_rooms and rooms[players_in_rooms[getId(websocket)]]['state'] == 'waiting_to_start':
                             await send_action(websocket, 'A', json.dumps({'room_name': players_in_rooms[getId(websocket)], 'players': getNumOfPlayersInRoom(players_in_rooms[getId(websocket)]), 'max_players': max_players_in_room}))
+                            room_name = players_in_rooms[getId(websocket)]
+                            if getNumOfPlayersInRoom(room_name) == max_players_in_room:  # If the room now has two players 
+                                if getId(websocket) == rooms[players_in_rooms[getId(websocket)]]['host']:
+                                    await send_action(websocket, 'C', json.dumps({}))
                         elif getId(websocket) in players_in_rooms and rooms[players_in_rooms[getId(websocket)]]['state'] == 'playing':
+                            room_name = players_in_rooms[getId(websocket)]
                             await send_action(websocket,'S',json.dumps({'word_length': rooms[room_name]["word_length"], 'wordProgress': getWordProgress(rooms[room_name]["word"], rooms[room_name]["guessed_letters"])}))
-                        
+                            await sendToAllPlayersInRoom(room_name,'M', json.dumps({'wrongLetters': rooms[room_name]['wrong_letters'], 'errors': len(rooms[room_name]['wrong_letters'])}))
+                            if rooms[room_name]['players'][rooms[room_name]['turn']] == getId(websocket):
+                                await send_action(websocket, 'Y', json.dumps({}))
+                        elif getId(websocket) in players_in_rooms and rooms[players_in_rooms[getId(websocket)]]['state'] == 'ended':
+                            room_name = players_in_rooms[getId(websocket)]
+    
+                            if len(rooms[room_name]['wrong_letters']) == max_errors:
+                                await send_action(websocket,'L', json.dumps({'word': rooms[room_name]['word']}))
+                            else :
+                                await send_action(websocket,'V', json.dumps({'word': rooms[room_name]['word']}))
+
+                            
                 elif action == 'X':
                     print("Room created")
                     room_name = decode_roomname(message)
